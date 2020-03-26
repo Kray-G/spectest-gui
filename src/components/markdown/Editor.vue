@@ -1,6 +1,7 @@
 <template>
   <MonacoEditor ref="editor" v-model="code" language="markdown" class="mdeditor" :style="{ width: width, height: height }"
-    :options="{ scrollBeyondLastLine: false, wordWrap: 'on', fontSize: fontSize }"
+    :theme="editorOptions.theme"
+    :options="{ scrollBeyondLastLine: false, wordWrap: 'on', fontSize: editorOptions.fontSize }"
     @editorWillMount="onEditorWillMount"
   />
 </template>
@@ -36,7 +37,7 @@ function generateWrapperCommand(monaco, editor, startText, endText) {
         }
     ])
     editor.setSelection(range)
-    return null;
+    return null
   }
 }
 
@@ -46,17 +47,71 @@ function addWrapperCommand(monaco, editor, label, keybindings, startText, endTex
     id: 'markdwon-'+label,
     label: label,
     keybindings: keybindings,
-    precondition: null,
-    keybindingContext: null,
     contextMenuGroupId: 'navigation',
     contextMenuOrder: 1.5,
     run: actionCommand[label]
   })
 }
 
+function generateHeaderCommand(monaco, editor, startText) {
+  return (editor) => {
+    var selection = editor.getSelection();
+    var m = editor.getModel().findNextMatch("^(#+ )", { lineNumber: selection.startLineNumber, column: 1 }, true, false, null, true)
+    console.log(m)
+    if (m.range.startLineNumber == selection.startLineNumber && m.range.startColumn == 1) {
+      if (m.matches[1] == startText) {
+        return
+      }
+      editor.getModel().pushEditOperations([], [
+          {
+              range: {
+                  startLineNumber: selection.startLineNumber,
+                  startColumn: 1,
+                  endLineNumber: selection.startLineNumber,
+                  endColumn: m.matches[1].length + 1
+              },
+              text: ''
+          }
+      ])
+    }
+    editor.getModel().pushEditOperations([], [
+        {
+            range: {
+                startLineNumber: selection.startLineNumber,
+                startColumn: 1,
+                endLineNumber: selection.startLineNumber,
+                endColumn: 1
+            },
+            text: startText
+        }
+    ])
+    editor.setSelection(selection)
+    return null
+  }
+}
+
+function addHeaderCommand(monaco, editor, label, keybindings, startText) {
+  actionCommand[label] = generateHeaderCommand(monaco, editor, startText)
+  editor.addAction({
+    id: 'markdwon-header-'+label,
+    label: label,
+    keybindings: keybindings,
+    run: actionCommand[label]
+  })
+}
+
 function setupShortcutKeys(monaco, editor) {
-  addWrapperCommand(monaco, editor, "Bold",   [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_B ], "**", "**")
-  addWrapperCommand(monaco, editor, "Itaric", [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_I ], "*",  "*")
+  addWrapperCommand(monaco, editor, "Bold",           [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_B ],                       "**", "**")
+  addWrapperCommand(monaco, editor, "Itaric",         [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_I ],                       "*",  "*")
+  addWrapperCommand(monaco, editor, "Underline",      [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_U ],                       "<u>",  "</u>")
+  addWrapperCommand(monaco, editor, "Strikethrough",  [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_S ], "~~", "~~")
+  addWrapperCommand(monaco, editor, "Code",           [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_M ], "`",  "`")
+  addHeaderCommand (monaco, editor, "Header 1",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_1 ], "# ")
+  addHeaderCommand (monaco, editor, "Header 2",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_2 ], "## ")
+  addHeaderCommand (monaco, editor, "Header 3",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_3 ], "### ")
+  addHeaderCommand (monaco, editor, "Header 4",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_4 ], "#### ")
+  addHeaderCommand (monaco, editor, "Header 5",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_5 ], "##### ")
+  addHeaderCommand (monaco, editor, "Header 6",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_6 ], "###### ")
 }
 
 export default {
@@ -68,9 +123,12 @@ export default {
     isScrollReceived: false,
     code: '',
     monaco: null,
-    fontSize: 12,
     clientWidth: 1,
     clientHeight: 1,
+    editorOptions: {
+      fontSize: 12,
+      theme: '',
+    }
   }),
 
   methods: {
