@@ -97,8 +97,6 @@ export default {
       if (el) {
         var editor = el.getEditor()
         if (editor) {
-          console.log("Editor value")
-          console.log(v)
           var topEnd = editor.getScrollHeight() - this.clientHeight
           this.$nextTick(() => {
             editor.setScrollTop(topEnd * v);
@@ -111,16 +109,12 @@ export default {
         return
       }
       var editor = this.$refs.editor.getEditor()
-      if (editor) {
-        var scrollTop = editor.getScrollTop();
-        var topEnd = editor.getScrollHeight() - this.clientHeight
-        if (topEnd > 0) {
-          this.$nextTick(() => {
-            console.log("Editor fire")
-            console.log(scrollTop / topEnd)
-            this.$emit('onScrollUpdatedViewer', scrollTop / topEnd)
-          })
-        }
+      var scrollTop = editor.getScrollTop();
+      var topEnd = editor.getScrollHeight() - this.clientHeight
+      if (topEnd > 0) {
+        this.$nextTick(() => {
+          this.$emit('onScrollUpdatedViewer', scrollTop / topEnd)
+        })
       }
     },
   },

@@ -46,8 +46,6 @@ export default {
       }, 1000)
       var el = this.$refs.viewer;
       if (el) {
-        console.log("Viewer value")
-        console.log(v)
         var topEnd = el.scrollHeight - el.clientHeight
         this.$nextTick(() => {
           el.scrollTop = topEnd * v;
@@ -63,8 +61,6 @@ export default {
         var topEnd = el.scrollHeight - el.clientHeight
         if (topEnd > 0) {
           this.$nextTick(() => {
-            console.log("Viewer fire")
-            console.log(el.scrollTop / topEnd)
             this.$emit('onScrollUpdatedEditor', el.scrollTop / topEnd)
           })
         }
