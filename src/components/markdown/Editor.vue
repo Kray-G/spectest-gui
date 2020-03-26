@@ -43,7 +43,7 @@ function generateWrapperCommand(monaco, editor, startText, endText) {
 function addWrapperCommand(monaco, editor, label, keybindings, startText, endText) {
   actionCommand[label] = generateWrapperCommand(monaco, editor, startText, endText)
   editor.addAction({
-    id: 'markdwn-'+label,
+    id: 'markdwon-'+label,
     label: label,
     keybindings: keybindings,
     precondition: null,
