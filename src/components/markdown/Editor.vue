@@ -8,6 +8,57 @@
 <script>
 import MonacoEditor from 'vue-monaco'
 
+var actionCommand = {}
+
+function generateWrapperCommand(monaco, editor, startText, endText) {
+  var len = startText.length + endText.length
+  return (editor) => {
+    var selection = editor.getSelection();
+    var range = new monaco.Range(selection.startLineNumber, selection.startColumn, selection.endLineNumber, selection.endColumn+len);
+    editor.getModel().pushEditOperations([], [
+        {
+            range: {
+                startLineNumber: selection.startLineNumber,
+                startColumn: selection.startColumn,
+                endLineNumber: selection.startLineNumber,
+                endColumn: selection.startColumn
+            },
+            text: startText
+        },
+        {
+            range: {
+                startLineNumber: selection.endLineNumber,
+                startColumn: selection.endColumn,
+                endLineNumber: selection.endLineNumber,
+                endColumn: selection.endColumn
+            },
+            text: endText
+        }
+    ])
+    editor.setSelection(range)
+    return null;
+  }
+}
+
+function addWrapperCommand(monaco, editor, label, keybindings, startText, endText) {
+  actionCommand[label] = generateWrapperCommand(monaco, editor, startText, endText)
+  editor.addAction({
+    id: 'markdwn-'+label,
+    label: label,
+    keybindings: keybindings,
+    precondition: null,
+    keybindingContext: null,
+    contextMenuGroupId: 'navigation',
+    contextMenuOrder: 1.5,
+    run: actionCommand[label]
+  })
+}
+
+function setupShortcutKeys(monaco, editor) {
+  addWrapperCommand(monaco, editor, "Bold",   [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_B ], "**", "**")
+  addWrapperCommand(monaco, editor, "Itaric", [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_I ], "*",  "*")
+}
+
 export default {
   name: 'MarkdownEditor',
   components: { MonacoEditor },
@@ -77,6 +128,9 @@ export default {
   mounted: function () {
     var editor = this.$refs.editor.getEditor()
     editor.onDidScrollChange(this.handleScroll)
+    if (this.monaco) {
+      setupShortcutKeys(this.monaco, editor)
+    }
   },
 
   computed: {
