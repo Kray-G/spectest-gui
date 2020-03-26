@@ -24,6 +24,8 @@ export default {
   },
 
   data: () => ({
+    timeoutId: null,
+    isScrollReceived: false,
     clientWidth: 1,
     clientHeight: 1,
   }),
@@ -33,12 +35,40 @@ export default {
       this.clientWidth = el.clientWidth - 1;
       this.clientHeight = el.clientHeight - 3;
     },
+    setScrollTop: function(v) {
+      this.isScrollReceived = true
+      if (this.timeoutId) {
+        clearTimeout(this.timeoutId)
+      }
+      this.timeoutId = setTimeout(() => {
+        this.isScrollReceived = false
+        this.timeoutId = null
+      }, 1000)
+      var el = this.$refs.viewer;
+      if (el) {
+        console.log("Viewer value")
+        console.log(v)
+        var topEnd = el.scrollHeight - el.clientHeight
+        this.$nextTick(() => {
+          el.scrollTop = topEnd * v;
+        })
+      }
+    },
     handleScroll: function(e) {
+      if (this.isScrollReceived) {
+        return
+      }
       var el = e.target
-      var topEnd = el.scrollHeight - el.clientHeight
-      this.$nextTick(() => {
-        this.$emit('onScrollUpdatedEditor', el.scrollTop / topEnd)
-      })
+      if (el && el.clientHeight && el.scrollHeight) {
+        var topEnd = el.scrollHeight - el.clientHeight
+        if (topEnd > 0) {
+          this.$nextTick(() => {
+            console.log("Viewer fire")
+            console.log(el.scrollTop / topEnd)
+            this.$emit('onScrollUpdatedEditor', el.scrollTop / topEnd)
+          })
+        }
+      }
     },
   },
 
@@ -52,7 +82,7 @@ export default {
 
   computed: {
     markdown: function () {
-      return marked(this.$store.state.code) + '<br />'
+      return marked(this.$store.state.code + '\n')
     },
     width() {
       return this.clientWidth + 'px'

@@ -13,6 +13,8 @@ export default {
   components: { MonacoEditor },
 
   data: () => ({
+    timeoutId: null,
+    isScrollReceived: false,
     code: '',
     monaco: null,
     fontSize: 12,
@@ -32,11 +34,49 @@ export default {
       })
     },
     setScrollTop: function(v) {
+      this.isScrollReceived = true
+      if (this.timeoutId) {
+        clearTimeout(this.timeoutId)
+      }
+      this.timeoutId = setTimeout(() => {
+        this.isScrollReceived = false
+        this.timeoutId = null
+      }, 1000)
       var el = this.$refs.editor;
-      if (!el) return;
-      var topEnd = el.getEditor().getScrollHeight() - this.clientHeight
-      el.getEditor().setScrollTop(topEnd * v);
+      if (el) {
+        var editor = el.getEditor()
+        if (editor) {
+          console.log("Editor value")
+          console.log(v)
+          var topEnd = editor.getScrollHeight() - this.clientHeight
+          this.$nextTick(() => {
+            editor.setScrollTop(topEnd * v);
+          })
+        }
+      }
     },
+    handleScroll: function() {
+      if (this.isScrollReceived) {
+        return
+      }
+      var editor = this.$refs.editor.getEditor()
+      if (editor) {
+        var scrollTop = editor.getScrollTop();
+        var topEnd = editor.getScrollHeight() - this.clientHeight
+        if (topEnd > 0) {
+          this.$nextTick(() => {
+            console.log("Editor fire")
+            console.log(scrollTop / topEnd)
+            this.$emit('onScrollUpdatedViewer', scrollTop / topEnd)
+          })
+        }
+      }
+    },
+  },
+
+  mounted: function () {
+    var editor = this.$refs.editor.getEditor()
+    editor.onDidScrollChange(this.handleScroll)
   },
 
   computed: {

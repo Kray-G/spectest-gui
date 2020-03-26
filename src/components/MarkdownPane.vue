@@ -1,7 +1,7 @@
 <template>
   <splitpanes :style="{ height: height, overflow: 'hidden' }" @resized="resizedPane($event)">
     <pane class="pane-editor" ref="epane" size="55">
-      <MarkdownEditor ref="editor" />
+      <MarkdownEditor ref="editor" @onScrollUpdatedViewer="onScrollUpdatedViewer" />
     </pane>
     <pane class="pane-view" ref="vpane">
       <MarkdownViewer ref="viewer" @onScrollUpdatedEditor="onScrollUpdatedEditor" />
@@ -30,8 +30,10 @@ export default {
       })
     },
     onScrollUpdatedEditor: function(value) {
-      this.resizedPane()
-      this.$refs.editor.setScrollTop(value);
+      this.$refs.editor.setScrollTop(value > 1 ? 1 : value);
+    },
+    onScrollUpdatedViewer: function(value) {
+      this.$refs.viewer.setScrollTop(value > 1 ? 1 : value);
     },
   },
 
