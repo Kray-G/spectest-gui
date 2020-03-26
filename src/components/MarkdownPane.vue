@@ -4,7 +4,7 @@
       <MarkdownEditor ref="editor" />
     </pane>
     <pane class="pane-view" ref="vpane">
-      <MarkdownViewer ref="viewer" />
+      <MarkdownViewer ref="viewer" @onScrollUpdatedEditor="onScrollUpdatedEditor" />
     </pane>
   </splitpanes>
 </template>
@@ -28,7 +28,11 @@ export default {
         this.$refs.editor.resize(this.$refs.epane.$el)
         this.$refs.viewer.resize(this.$refs.vpane.$el)
       })
-    }
+    },
+    onScrollUpdatedEditor: function(value) {
+      this.resizedPane()
+      this.$refs.editor.setScrollTop(value);
+    },
   },
 
   computed: {

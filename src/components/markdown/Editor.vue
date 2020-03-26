@@ -31,6 +31,12 @@ export default {
         this.$refs.editor.getEditor().layout()
       })
     },
+    setScrollTop: function(v) {
+      var el = this.$refs.editor;
+      if (!el) return;
+      var topEnd = el.getEditor().getScrollHeight() - this.clientHeight
+      el.getEditor().setScrollTop(topEnd * v);
+    },
   },
 
   computed: {

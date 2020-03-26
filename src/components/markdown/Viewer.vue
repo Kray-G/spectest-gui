@@ -33,6 +33,21 @@ export default {
       this.clientWidth = el.clientWidth - 1;
       this.clientHeight = el.clientHeight - 3;
     },
+    handleScroll: function(e) {
+      var el = e.target
+      var topEnd = el.scrollHeight - el.clientHeight
+      this.$nextTick(() => {
+        this.$emit('onScrollUpdatedEditor', el.scrollTop / topEnd)
+      })
+    },
+  },
+
+  mounted: function () {
+    document.getElementById("viewer").addEventListener('scroll', this.handleScroll);
+  },
+
+  beforeDestroy: function () {
+    document.getElementById("viewer").removeEventListener('scroll', this.handleScroll);
   },
 
   computed: {
