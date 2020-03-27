@@ -8,6 +8,7 @@
     <v-content>
       <MarkdownPane ref="pane" />
     </v-content>
+    <v-btn color="red" dark fixed right bottom fab @click="gotoTop"><font-awesome-icon icon="chevron-up" /></v-btn>
   </v-app>
 </template>
 
@@ -26,13 +27,16 @@ export default {
   }),
 
   methods: {
-    handleResize: function() {
+    gotoTop () {
+      this.$refs.pane.gotoTop()
+    },
+    handleResize () {
       this.$store.commit('setWindowSize', this.$refs.appbar.$el)
       this.$refs.pane.resizedPane()
     },
   },
 
-  mounted: function () {
+  mounted () {
     window.addEventListener('resize', this.handleResize)
     this.$store.commit('setWindowSize', this.$refs.appbar.$el)
     this.$nextTick(() => {
@@ -40,7 +44,7 @@ export default {
     })
   },
 
-  beforeDestroy: function () {
+  beforeDestroy () {
     window.removeEventListener('resize', this.handleResize)
   },
 };

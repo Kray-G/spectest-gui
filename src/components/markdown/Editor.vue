@@ -9,58 +9,83 @@
 <script>
 import MonacoEditor from 'vue-monaco'
 
-var actionCommand = {}
+var actionCommand = {}, cmdid = 0
 
 function generateWrapperCommand(monaco, editor, startText, endText) {
   var len = startText.length + endText.length
-  return (editor) => {
-    var selection = editor.getSelection();
-    var range = new monaco.Range(selection.startLineNumber, selection.startColumn, selection.endLineNumber, selection.endColumn+len);
-    editor.getModel().pushEditOperations([], [
-        {
-            range: {
-                startLineNumber: selection.startLineNumber,
-                startColumn: selection.startColumn,
-                endLineNumber: selection.startLineNumber,
-                endColumn: selection.startColumn
-            },
-            text: startText
-        },
-        {
-            range: {
-                startLineNumber: selection.endLineNumber,
-                startColumn: selection.endColumn,
-                endLineNumber: selection.endLineNumber,
-                endColumn: selection.endColumn
-            },
-            text: endText
-        }
-    ])
-    editor.setSelection(range)
+  return () => {
+    var sels = editor.getSelections()
+    if (sels == null) {
+      return
+    }
+    console.log(sels)
+    var ranges = []
+    sels.forEach(selection => {
+      ranges.push(new monaco.Selection(selection.startLineNumber, selection.startColumn, selection.endLineNumber, selection.endColumn+len))
+      editor.getModel().pushEditOperations([], [
+          {
+              range: {
+                  startLineNumber: selection.startLineNumber,
+                  startColumn: selection.startColumn,
+                  endLineNumber: selection.startLineNumber,
+                  endColumn: selection.startColumn
+              },
+              text: startText
+          },
+          {
+              range: {
+                  startLineNumber: selection.endLineNumber,
+                  startColumn: selection.endColumn,
+                  endLineNumber: selection.endLineNumber,
+                  endColumn: selection.endColumn
+              },
+              text: endText
+          }
+      ])
+    })
+    editor.setSelections(ranges)
     return null
   }
 }
 
-function addWrapperCommand(monaco, editor, label, keybindings, startText, endText) {
+function addWrapperCommand(monaco, editor, context, label, keybindings, startText, endText) {
   actionCommand[label] = generateWrapperCommand(monaco, editor, startText, endText)
   editor.addAction({
-    id: 'markdwon-'+label,
+    id: 'markdwon-'+(cmdid++),
     label: label,
     keybindings: keybindings,
-    contextMenuGroupId: 'navigation',
-    contextMenuOrder: 1.5,
+    contextMenuGroupId: context && 'navigation',
+    contextMenuOrder: context && 1.5,
     run: actionCommand[label]
   })
 }
 
 function generateHeaderCommand(monaco, editor, startText) {
-  return (editor) => {
-    var selection = editor.getSelection();
-    var m = editor.getModel().findNextMatch("^(#+ )", { lineNumber: selection.startLineNumber, column: 1 }, true, false, null, true)
-    console.log(m)
-    if (m.range.startLineNumber == selection.startLineNumber && m.range.startColumn == 1) {
-      if (m.matches[1] == startText) {
-        return
+  return () => {
+    var sels = editor.getSelections()
+    if (sels == null) {
+      sels = [editor.getSelections()]
+    }
+    console.log(sels)
+    sels.forEach(selection => {      
+      var m = editor.getModel().findNextMatch("^(#+ )", { lineNumber: selection.startLineNumber, column: 1 }, true, false, null, true)
+      if (m != null) {
+        if (m.range.startLineNumber == selection.startLineNumber && m.range.startColumn == 1) {
+          if (m.matches[1] == startText) {
+            return
+          }
+          editor.getModel().pushEditOperations([], [
+              {
+                  range: {
+                      startLineNumber: selection.startLineNumber,
+                      startColumn: 1,
+                      endLineNumber: selection.startLineNumber,
+                      endColumn: m.matches[1].length + 1
+                  },
+                  text: ''
+              }
+          ])
+        }
       }
       editor.getModel().pushEditOperations([], [
           {
@@ -68,50 +93,42 @@ function generateHeaderCommand(monaco, editor, startText) {
                   startLineNumber: selection.startLineNumber,
                   startColumn: 1,
                   endLineNumber: selection.startLineNumber,
-                  endColumn: m.matches[1].length + 1
+                  endColumn: 1
               },
-              text: ''
+              text: startText
           }
       ])
-    }
-    editor.getModel().pushEditOperations([], [
-        {
-            range: {
-                startLineNumber: selection.startLineNumber,
-                startColumn: 1,
-                endLineNumber: selection.startLineNumber,
-                endColumn: 1
-            },
-            text: startText
-        }
-    ])
-    editor.setSelection(selection)
+    })
     return null
   }
 }
 
-function addHeaderCommand(monaco, editor, label, keybindings, startText) {
+function addHeaderCommand(monaco, editor, context, label, keybindings, startText) {
   actionCommand[label] = generateHeaderCommand(monaco, editor, startText)
   editor.addAction({
-    id: 'markdwon-header-'+label,
+    id: 'markdwon-'+(cmdid++),
     label: label,
     keybindings: keybindings,
+    contextMenuGroupId: context && 'navigation',
+    contextMenuOrder: context && 1.5,
     run: actionCommand[label]
   })
 }
 
 function setupShortcutKeys(monaco, editor) {
-  addWrapperCommand(monaco, editor, "Bold",           [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_B ],                       "**", "**")
-  addWrapperCommand(monaco, editor, "Itaric",         [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_I ],                       "*",  "*")
-  addWrapperCommand(monaco, editor, "Underline",      [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_U ],                       "<u>",  "</u>")
-  addWrapperCommand(monaco, editor, "Strikethrough",  [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_S ], "~~", "~~")
-  addWrapperCommand(monaco, editor, "Code",           [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_M ], "`",  "`")
-  addHeaderCommand (monaco, editor, "Header 1",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_1 ], "# ")
-  addHeaderCommand (monaco, editor, "Header 2",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_2 ], "## ")
-  addHeaderCommand (monaco, editor, "Header 3",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_3 ], "### ")
-  addHeaderCommand (monaco, editor, "Header 4",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_4 ], "#### ")
-  addHeaderCommand (monaco, editor, "Header 5",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_5 ], "##### ")
-  addHeaderCommand (monaco, editor, "Header 6",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_6 ], "###### ")
+  addWrapperCommand(monaco, editor, true , "Bold",           [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_B ],                        "**", "**")
+  addWrapperCommand(monaco, editor, true , "Italic",         [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_I ],                        "*",  "*")
+  addWrapperCommand(monaco, editor, true , "Underline",      [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_U ],                        "<u>",  "</u>")
+  addWrapperCommand(monaco, editor, true , "Strikethrough",  [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_S ],  "~~", "~~")
+  addWrapperCommand(monaco, editor, true , "Code",           [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_M ],  "`",  "`")
+  addWrapperCommand(monaco, editor, false, "Link-1",         [ monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L ],                        "[",  "]()")
+  addWrapperCommand(monaco, editor, false, "Link-2",         [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_L ],  "[](",  ")")
+  addHeaderCommand (monaco, editor, false, "Header 1",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_1 ],  "# ")
+  addHeaderCommand (monaco, editor, false, "Header 2",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_2 ],  "## ")
+  addHeaderCommand (monaco, editor, false, "Header 3",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_3 ],  "### ")
+  addHeaderCommand (monaco, editor, false, "Header 4",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_4 ],  "#### ")
+  addHeaderCommand (monaco, editor, false, "Header 5",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_5 ],  "##### ")
+  addHeaderCommand (monaco, editor, false, "Header 6",       [ monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt   | monaco.KeyCode.KEY_6 ],  "###### ")
 }
 
 export default {
@@ -132,37 +149,44 @@ export default {
   }),
 
   methods: {
-    onEditorWillMount: function(monaco) {
+    onEditorWillMount (monaco) {
       this.monaco = monaco
     },
-    resize: function(el) {
+    action (name) {
+      if (actionCommand[name] != null) {
+        actionCommand[name]()
+      }
+    },
+    resize (el, height) {
       this.clientWidth = el.clientWidth - 1;
-      this.clientHeight = el.clientHeight - 3;
+      this.clientHeight = height ? height - 3 : el.clientHeight;
       this.$nextTick(() => {
         this.$refs.editor.getEditor().layout()
       })
     },
-    setScrollTop: function(v) {
-      this.isScrollReceived = true
+    setTimeout (clearOnly) {
       if (this.timeoutId) {
         clearTimeout(this.timeoutId)
-      }
-      this.timeoutId = setTimeout(() => {
-        this.isScrollReceived = false
         this.timeoutId = null
-      }, 1000)
-      var el = this.$refs.editor;
-      if (el) {
-        var editor = el.getEditor()
-        if (editor) {
-          var topEnd = editor.getScrollHeight() - this.clientHeight
-          this.$nextTick(() => {
-            editor.setScrollTop(topEnd * v);
-          })
-        }
+      }
+      if (!clearOnly) {
+        this.timeoutId = setTimeout(() => {
+          this.isScrollReceived = false
+          this.timeoutId = null
+        }, 200)
       }
     },
-    handleScroll: function() {
+    setScrollTop (v) {
+      this.isScrollReceived = true
+      this.setTimeout(false)
+      var el = this.$refs.editor;
+      var editor = el.getEditor()
+      var topEnd = editor.getScrollHeight() - this.clientHeight
+      this.$nextTick(() => {
+        editor.setScrollTop(topEnd * v);
+      })
+    },
+    handleScroll () {
       if (this.isScrollReceived) {
         return
       }
@@ -177,7 +201,7 @@ export default {
     },
   },
 
-  mounted: function () {
+  mounted () {
     var editor = this.$refs.editor.getEditor()
     editor.onDidScrollChange(this.handleScroll)
     if (this.monaco) {
@@ -186,16 +210,16 @@ export default {
   },
 
   computed: {
-    width() {
+    width () {
       return this.clientWidth + 'px'
     },
-    height() {
+    height () {
       return this.clientHeight + 'px'
     },
   },
 
   watch: {
-    code() {
+    code () {
       this.$store.commit('updateCode', this.code)
     },
   },

@@ -13,10 +13,15 @@ import 'github-markdown-css/github-markdown.css'
 export default {
   name: 'MarkdownViewer',
 
-  created: function () {
+  created () {
+    var renderer = new marked.Renderer();
+    renderer.link = function (href, title, text) {
+      return `<a target="_blank" href="${href}">${text}` + '</a>';
+    }
     marked.setOptions({
+      renderer: renderer,
       langPrefix: '',
-      highlight: function(code, lang) {
+      highlight (code, lang) {
         var l = lang.split(':');
         return hljs.highlightAuto(code, [l[0]]).value
       }
@@ -31,28 +36,39 @@ export default {
   }),
 
   methods: {
-    resize: function(el) {
+    resize (el, height) {
       this.clientWidth = el.clientWidth - 1;
-      this.clientHeight = el.clientHeight - 3;
+      this.clientHeight = height ? height - 3 : el.clientHeight;
     },
-    setScrollTop: function(v) {
-      this.isScrollReceived = true
+    setTimeout (clearOnly) {
       if (this.timeoutId) {
         clearTimeout(this.timeoutId)
-      }
-      this.timeoutId = setTimeout(() => {
-        this.isScrollReceived = false
         this.timeoutId = null
-      }, 1000)
-      var el = this.$refs.viewer;
-      if (el) {
-        var topEnd = el.scrollHeight - el.clientHeight
-        this.$nextTick(() => {
-          el.scrollTop = topEnd * v;
-        })
+      }
+      if (!clearOnly) {
+        this.timeoutId = setTimeout(() => {
+          this.isScrollReceived = false
+          this.timeoutId = null
+        }, 200)
       }
     },
-    handleScroll: function(e) {
+    setScrollTop (v) {
+      if (v == null) {
+        this.$refs.viewer.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        })
+        return
+      }
+      this.isScrollReceived = true
+      this.setTimeout(false)
+      var el = this.$refs.viewer;
+      var topEnd = el.scrollHeight - el.clientHeight
+      this.$nextTick(() => {
+        el.scrollTop = topEnd * v;
+      })
+    },
+    handleScroll (e) {
       if (this.isScrollReceived) {
         return
       }
@@ -68,22 +84,22 @@ export default {
     },
   },
 
-  mounted: function () {
+  mounted () {
     document.getElementById("viewer").addEventListener('scroll', this.handleScroll);
   },
 
-  beforeDestroy: function () {
+  beforeDestroy () {
     document.getElementById("viewer").removeEventListener('scroll', this.handleScroll);
   },
 
   computed: {
-    markdown: function () {
+    markdown () {
       return marked(this.$store.state.code + '\n')
     },
-    width() {
+    width () {
       return this.clientWidth + 'px'
     },
-    height() {
+    height () {
       return this.clientHeight + 'px'
     },
   }
