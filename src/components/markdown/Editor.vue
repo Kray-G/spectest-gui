@@ -63,7 +63,7 @@ function generateHeaderCommand(monaco, editor, startText) {
   return () => {
     var sels = editor.getSelections()
     if (sels == null) {
-      sels = [editor.getSelections()]
+      sels = [editor.getSelection()]
     }
     sels.forEach(selection => {      
       var m = editor.getModel().findNextMatch("^(#+ )", { lineNumber: selection.startLineNumber, column: 1 }, true, false, null, true)
