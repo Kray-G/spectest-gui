@@ -18,7 +18,6 @@ function generateWrapperCommand(monaco, editor, startText, endText) {
     if (sels == null) {
       return
     }
-    console.log(sels)
     var ranges = []
     sels.forEach(selection => {
       ranges.push(new monaco.Selection(selection.startLineNumber, selection.startColumn, selection.endLineNumber, selection.endColumn+len))
@@ -66,7 +65,6 @@ function generateHeaderCommand(monaco, editor, startText) {
     if (sels == null) {
       sels = [editor.getSelections()]
     }
-    console.log(sels)
     sels.forEach(selection => {      
       var m = editor.getModel().findNextMatch("^(#+ )", { lineNumber: selection.startLineNumber, column: 1 }, true, false, null, true)
       if (m != null) {
