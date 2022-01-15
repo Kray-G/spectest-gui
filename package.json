@@ -21,7 +21,7 @@
     "core-js": "^3.6.4",
     "github-markdown-css": "^4.0.0",
     "highlight.js": "^9.18.1",
-    "marked": "^0.8.2",
+    "marked": "^4.0.10",
     "splitpanes": "^2.2.1",
     "vue": "^2.6.11",
     "vue-monaco": "^1.1.0",
